@@ -1,7 +1,5 @@
 package bus
 
-//go:generate mockgen -destination=../mocks/mock_bus.go -package=mocks mediafly/go-bus/bus Bus
-
 import (
 	"context"
 	"errors"
@@ -133,4 +131,41 @@ func (t TestBus) SendRaw(ctx context.Context, exchange string, route string, bod
 }
 func (t TestBus) reconnect() error {
 	return nil
+}
+
+type ErrorBus struct {
+}
+
+func (t ErrorBus) Close() error {
+	return errors.New("test fail")
+}
+func (t ErrorBus) Declare(sub Subscription) error {
+	return errors.New("test fail")
+}
+func (t ErrorBus) ListQueues() ([]string, error) {
+	return nil, errors.New("test fail")
+}
+func (t ErrorBus) QueueDetails(queue string) (QueueDetails, error) {
+	return QueueDetails{}, errors.New("test fail")
+}
+func (t ErrorBus) PurgeQueue(queue string) error {
+	return errors.New("test fail")
+}
+func (t ErrorBus) Listen(subscriptions []Subscription) error {
+	return errors.New("test fail")
+}
+func (t ErrorBus) ListenRaw(queue string, handler func(body []byte) error) error {
+	return errors.New("test fail")
+}
+func (t ErrorBus) ListenRawDel(queue string, handler func(del amqp.Delivery) error) error {
+	return errors.New("test fail")
+}
+func (t ErrorBus) Send(ctx context.Context, msg Message, headers map[string]interface{}) error {
+	return errors.New("test fail")
+}
+func (t ErrorBus) SendRaw(ctx context.Context, exchange string, route string, body []byte, headers map[string]interface{}) error {
+	return errors.New("test fail")
+}
+func (t ErrorBus) reconnect() error {
+	return errors.New("test fail")
 }
