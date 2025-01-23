@@ -2,6 +2,7 @@ package bus
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/streadway/amqp"
 )
@@ -30,25 +31,25 @@ func (b bus) Declare(sub Subscription) error {
 
 	durable := b.config.Durable
 
-	b.log.Printf("declaring queue: %s", sub.Queue)
+	log.Printf("declaring queue: %s", sub.Queue)
 	_, err = ch.QueueDeclare(sub.Queue, durable, false, false, false, nil)
 	if err != nil {
 		return err
 	}
 
-	b.log.Printf("declaring queue: %s", sub.DLQName())
+	log.Printf("declaring queue: %s", sub.DLQName())
 	_, err = ch.QueueDeclare(sub.DLQName(), durable, false, false, false, nil)
 	if err != nil {
 		return err
 	}
 
-	b.log.Printf("declaring exchange: %s (type: %s)", sub.Exchange, b.config.ExchangeType)
+	log.Printf("declaring exchange: %s (type: %s)", sub.Exchange, b.config.ExchangeType)
 	err = ch.ExchangeDeclare(sub.Exchange, b.config.ExchangeType, durable, false, false, false, nil)
 	if err != nil {
 		return err
 	}
 
-	b.log.Printf("binding queue %s to exchange/route: %s/%s", sub.Queue, sub.Exchange, sub.Route)
+	log.Printf("binding queue %s to exchange/route: %s/%s", sub.Queue, sub.Exchange, sub.Route)
 	err = ch.QueueBind(sub.Queue, sub.Route, sub.Exchange, false, nil)
 	if err != nil {
 		return err

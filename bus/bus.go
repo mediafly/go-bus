@@ -4,8 +4,8 @@ package bus
 
 import (
 	"context"
-	"mediafly/warehouse/errors"
-	"mediafly/warehouse/log"
+	"errors"
+	"log"
 	"time"
 
 	"github.com/streadway/amqp"
@@ -14,7 +14,6 @@ import (
 type bus struct {
 	conn    *amqp.Connection
 	config  Config
-	log     log.Writer
 	closeCh chan *amqp.Error
 }
 
@@ -27,11 +26,11 @@ func (b *bus) reconnect() error {
 			for i := 0; i < b.config.MaxConnectionRetries; i++ {
 				if i > 0 {
 					duration := time.Duration(i*10) * time.Second
-					b.log.Printf("sleeping for %v seconds", duration.Seconds())
+					log.Printf("sleeping for %v seconds", duration.Seconds())
 					time.Sleep(duration)
 				}
 
-				b.log.Printf("retrying dial up, attempt %d", i+1)
+				log.Printf("retrying dial up, attempt %d", i+1)
 
 				conn, err := amqp.Dial(b.config.ServerConfig.GetAMQPUrl())
 				if err != nil {
@@ -42,7 +41,7 @@ func (b *bus) reconnect() error {
 					continue
 				}
 
-				b.log.Printf("connection reestablished")
+				log.Printf("connection reestablished")
 				b.conn = conn
 				b.closeCh = make(chan *amqp.Error)
 				b.conn.NotifyClose(b.closeCh)
@@ -74,14 +73,14 @@ type Bus interface {
 }
 
 // NewBus - create a new bus
-func NewBus(config Config, log log.Writer) (Bus, error) {
+func NewBus(config Config) (Bus, error) {
 	log.Printf("connecting to rabbitmq server at: %s", config.ServerConfig.GetAMQPUrl())
 	conn, err := amqp.Dial(config.ServerConfig.GetAMQPUrl())
 	if err != nil {
 		return nil, err
 	}
 
-	bus := bus{conn: conn, config: config, log: log}
+	bus := bus{conn: conn, config: config}
 	bus.closeCh = make(chan *amqp.Error)
 
 	bus.conn.NotifyClose(bus.closeCh)

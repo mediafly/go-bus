@@ -3,6 +3,7 @@ package bus
 import (
 	"context"
 	"encoding/json"
+	"log"
 
 	"github.com/streadway/amqp"
 	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
@@ -16,7 +17,7 @@ func (b bus) Send(ctx context.Context, msg Message, headers map[string]interface
 	span.SetTag("exchange", msg.Exchange())
 	span.SetTag("route", msg.Route())
 
-	b.log.Printf("sending message to exchange/route: %s/%s", msg.Exchange(), msg.Route())
+	log.Printf("sending message to exchange/route: %s/%s", msg.Exchange(), msg.Route())
 
 	ch, err := b.conn.Channel()
 	if err != nil {
@@ -50,7 +51,7 @@ func (b bus) SendRaw(ctx context.Context, exchange string, route string, body []
 	span.SetTag("exchange", exchange)
 	span.SetTag("route", route)
 
-	b.log.Printf("sending message to exchange/route: %s/%s", exchange, route)
+	log.Printf("sending message to exchange/route: %s/%s", exchange, route)
 
 	ch, err := b.conn.Channel()
 	if err != nil {
