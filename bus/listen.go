@@ -1,7 +1,8 @@
 package bus
 
 import (
-	"log"
+	"fmt"
+	"log/slog"
 
 	"github.com/streadway/amqp"
 )
@@ -39,14 +40,14 @@ func (b bus) Listen(subscriptions []Subscription) error {
 
 	retries := 0
 	for ce := range consumeErrors {
-		log.Printf("error handling messages on queue %s: %v", ce.sub.Queue, ce.err)
+		slog.Info(fmt.Sprintf("error handling messages on queue %s: %v", ce.sub.Queue, ce.err))
 		if retries < b.config.MaxConnectionRetries {
 			retries++
-			log.Printf("attempting to restart consumer for queue: %s (retry: %d; max retries: %d)", ce.sub.Queue, retries, b.config.MaxConnectionRetries)
+			slog.Info(fmt.Sprintf("attempting to restart consumer for queue: %s (retry: %d; max retries: %d)", ce.sub.Queue, retries, b.config.MaxConnectionRetries))
 
 			go b.consume(ce.sub, consumeErrors)
 		} else {
-			log.Printf("max retries exceeded")
+			slog.Info("max retries exceeded")
 			return ce.err
 		}
 	}
@@ -56,7 +57,7 @@ func (b bus) Listen(subscriptions []Subscription) error {
 
 // Consume - Listen for messages on the sepficied queue binding
 func (b bus) consume(sub Subscription, abort chan consumeError) {
-	log.Printf("listening for messages on queue: %s", sub.Queue)
+	slog.Info(fmt.Sprintf("listening for messages on queue: %s", sub.Queue))
 
 	ch, err := b.conn.Channel()
 	if err != nil {
@@ -89,10 +90,10 @@ func (b bus) consume(sub Subscription, abort chan consumeError) {
 	}
 
 	for del := range messages {
-		log.Printf("message with length %d bytes received on queue: %s headers %v", len(del.Body), sub.Queue, del.Headers)
+		slog.Debug(fmt.Sprintf("message with length %d bytes received on queue: %s headers %v", len(del.Body), sub.Queue, del.Headers))
 		defer func() {
 			if r := recover(); r != nil {
-				log.Printf("PANIC occured handling message on queue %s: %v", sub.Queue, r)
+				slog.Debug(fmt.Sprintf("PANIC occured handling message on queue %s: %v", sub.Queue, r))
 				err = Newf("PANIC: %v", r)
 
 				err = del.Nack(false, false)
@@ -112,7 +113,7 @@ func (b bus) consume(sub Subscription, abort chan consumeError) {
 
 		msgerr := sub.Handler(del.Body, del.Headers)
 		if msgerr != nil {
-			log.Printf("error handling message on queue %s: %v", sub.Queue, msgerr)
+			slog.Debug(fmt.Sprintf("error handling message on queue %s: %v", sub.Queue, msgerr))
 			err = del.Nack(false, false)
 			if err != nil {
 				abort <- consumeError{err: err, sub: sub}
@@ -135,7 +136,7 @@ func (b bus) consume(sub Subscription, abort chan consumeError) {
 				return
 			}
 
-			log.Printf("message on queue %s acked.", sub.Queue)
+			slog.Debug(fmt.Sprintf("message on queue %s acked.", sub.Queue))
 		}
 	}
 }
@@ -174,7 +175,7 @@ func (b bus) deliveryToPublishing(d amqp.Delivery, err error) amqp.Publishing {
 
 // ListenRaw - listen for messages using the given handler on the specified queue. Note that messages will not be archived, and neither the queue itself nor a DLQ will be declared.
 func (b bus) ListenRaw(queue string, handler func(body []byte) error) error {
-	log.Printf("listening for messages on queue: %s", queue)
+	slog.Info(fmt.Sprintf("listening for messages on queue: %s", queue))
 
 	ch, err := b.conn.Channel()
 	if err != nil {
@@ -188,11 +189,11 @@ func (b bus) ListenRaw(queue string, handler func(body []byte) error) error {
 	}
 
 	for del := range messages {
-		log.Printf("message with length %d bytes received on queue: %s", len(del.Body), queue)
+		slog.Debug(fmt.Sprintf("message with length %d bytes received on queue: %s", len(del.Body), queue))
 
 		msgerr := handler(del.Body)
 		if msgerr != nil {
-			log.Printf("error handling message on queue %s: %v", queue, msgerr)
+			slog.Debug(fmt.Sprintf("error handling message on queue %s: %v", queue, msgerr))
 			err = del.Nack(false, true)
 			if err != nil {
 				return Wrapf(err, "error nacking message on queue: %s", queue)
@@ -211,7 +212,7 @@ func (b bus) ListenRaw(queue string, handler func(body []byte) error) error {
 
 // ListenRawHeaders - same as ListenRaw, but allows message headers to be passed into the handler
 func (b bus) ListenRawDel(queue string, handler func(amqp.Delivery) error) error {
-	log.Printf("listening for messages on queue: %s", queue)
+	slog.Info(fmt.Sprintf("listening for messages on queue: %s", queue))
 
 	ch, err := b.conn.Channel()
 	if err != nil {
@@ -225,11 +226,11 @@ func (b bus) ListenRawDel(queue string, handler func(amqp.Delivery) error) error
 	}
 
 	for del := range messages {
-		log.Printf("message with length %d bytes received on queue: %s", len(del.Body), queue)
+		slog.Debug(fmt.Sprintf("message with length %d bytes received on queue: %s", len(del.Body), queue))
 
 		msgerr := handler(del)
 		if msgerr != nil {
-			log.Printf("error handling message on queue %s: %v", queue, msgerr)
+			slog.Debug(fmt.Sprintf("error handling message on queue %s: %v", queue, msgerr))
 			err = del.Nack(false, true)
 			if err != nil {
 				return Wrapf(err, "error nacking message on queue: %s", queue)
