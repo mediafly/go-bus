@@ -3,7 +3,9 @@ package bus
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
+	"log/slog"
 	"time"
 
 	"github.com/streadway/amqp"
@@ -24,11 +26,11 @@ func (b *bus) reconnect() error {
 			for i := 0; i < b.config.MaxConnectionRetries; i++ {
 				if i > 0 {
 					duration := time.Duration(i*10) * time.Second
-					log.Printf("sleeping for %v seconds", duration.Seconds())
+					slog.Debug(fmt.Sprintf("sleeping for %v seconds", duration.Seconds()))
 					time.Sleep(duration)
 				}
 
-				log.Printf("retrying dial up, attempt %d", i+1)
+				slog.Info(fmt.Sprintf("retrying dial up, attempt %d", i+1))
 
 				conn, err := amqp.Dial(b.config.ServerConfig.GetAMQPUrl())
 				if err != nil {
@@ -39,7 +41,7 @@ func (b *bus) reconnect() error {
 					continue
 				}
 
-				log.Printf("connection reestablished")
+				slog.Info("connection reestablished")
 				b.conn = conn
 				b.closeCh = make(chan *amqp.Error)
 				b.conn.NotifyClose(b.closeCh)
@@ -72,7 +74,7 @@ type Bus interface {
 
 // NewBus - create a new bus
 func NewBus(config Config) (Bus, error) {
-	log.Printf("connecting to rabbitmq server at: %s", config.ServerConfig.GetAMQPUrl())
+	slog.Debug(fmt.Sprintf("connecting to rabbitmq server at: %s", config.ServerConfig.GetAMQPUrl()))
 	conn, err := amqp.Dial(config.ServerConfig.GetAMQPUrl())
 	if err != nil {
 		return nil, err

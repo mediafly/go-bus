@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
+	"log/slog"
 
 	"net/http"
 	"net/url"
@@ -71,7 +71,7 @@ func (b bus) PurgeQueue(queue string) error {
 		return err
 	}
 
-	log.Printf("body: %v", string(body))
+	slog.Debug(fmt.Sprintf("body: %v", string(body)))
 
 	return nil
 }
