@@ -93,7 +93,7 @@ func (b bus) consume(sub Subscription, abort chan consumeError) {
 		slog.Debug(fmt.Sprintf("message with length %d bytes received on queue: %s headers %v", len(del.Body), sub.Queue, del.Headers))
 		defer func() {
 			if r := recover(); r != nil {
-				slog.Debug(fmt.Sprintf("PANIC occured handling message on queue %s: %v", sub.Queue, r))
+				slog.Info(fmt.Sprintf("PANIC occured handling message on queue %s: %v", sub.Queue, r))
 				err = Newf("PANIC: %v", r)
 
 				err = del.Nack(false, false)
@@ -113,7 +113,7 @@ func (b bus) consume(sub Subscription, abort chan consumeError) {
 
 		msgerr := sub.Handler(del.Body, del.Headers)
 		if msgerr != nil {
-			slog.Debug(fmt.Sprintf("error handling message on queue %s: %v", sub.Queue, msgerr))
+			slog.Info(fmt.Sprintf("error handling message on queue %s: %v", sub.Queue, msgerr))
 			err = del.Nack(false, false)
 			if err != nil {
 				abort <- consumeError{err: err, sub: sub}
@@ -193,7 +193,7 @@ func (b bus) ListenRaw(queue string, handler func(body []byte) error) error {
 
 		msgerr := handler(del.Body)
 		if msgerr != nil {
-			slog.Debug(fmt.Sprintf("error handling message on queue %s: %v", queue, msgerr))
+			slog.Info(fmt.Sprintf("error handling message on queue %s: %v", queue, msgerr))
 			err = del.Nack(false, true)
 			if err != nil {
 				return Wrapf(err, "error nacking message on queue: %s", queue)
@@ -230,7 +230,7 @@ func (b bus) ListenRawDel(queue string, handler func(amqp.Delivery) error) error
 
 		msgerr := handler(del)
 		if msgerr != nil {
-			slog.Debug(fmt.Sprintf("error handling message on queue %s: %v", queue, msgerr))
+			slog.Info(fmt.Sprintf("error handling message on queue %s: %v", queue, msgerr))
 			err = del.Nack(false, true)
 			if err != nil {
 				return Wrapf(err, "error nacking message on queue: %s", queue)

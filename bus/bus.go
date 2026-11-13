@@ -74,7 +74,6 @@ type Bus interface {
 
 // NewBus - create a new bus
 func NewBus(config Config) (Bus, error) {
-	slog.Debug(fmt.Sprintf("connecting to rabbitmq server at: %s", config.ServerConfig.GetAMQPUrl()))
 	conn, err := amqp.Dial(config.ServerConfig.GetAMQPUrl())
 	if err != nil {
 		return nil, err
