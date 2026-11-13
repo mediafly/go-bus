@@ -1,0 +1,24 @@
+version: v1.0
+name: go-bus
+
+agent:
+  machine:
+    type: f1-standard-2
+    os_image: ubuntu2404
+
+auto_cancel:
+  running:
+    when: "branch != 'main'"
+
+blocks:
+  - name: "Build and Test"
+    task:
+      prologue:
+        commands:
+          - checkout
+
+      jobs:
+        - name: "Build and Test"
+          commands:
+            - go build ./...
+            - go test ./...
